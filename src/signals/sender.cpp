@@ -45,5 +45,33 @@ int main(int argc, char *argv[])
     // a partir daqui o valor é confiável; kill espera pid_t, não long
     pid_t pid_destino = static_cast<pid_t>(pid_convertido);
 
+    std::string_view sinal_argumento{argv[2]};
+
+    long sinal_convertido{};
+    auto [sinal_fim_conversao, sinal_erro_conversao] = std::from_chars(
+        sinal_argumento.data(),
+        sinal_argumento.data() + sinal_argumento.size(),
+        sinal_convertido);
+
+    if (sinal_erro_conversao != std::errc{})
+    {
+        std::cerr << "erro: sinal inválido: " << argv[2] << "\n";
+        return 1;
+    }
+
+    if (sinal_fim_conversao != sinal_argumento.data() + sinal_argumento.size())
+    {
+        std::cerr << "erro: caracteres inesperados no sinal: " << argv[2] << "\n";
+        return 1;
+    }
+
+    if (sinal_convertido < 1 || sinal_convertido > 31)
+    {
+        std::cerr << "erro: sinal fora da faixa 1..31: " << sinal_convertido << "\n";
+        return 1;
+    }
+
+    int sinal_destino = static_cast<int>(sinal_convertido);
+
     return 0;
 }
