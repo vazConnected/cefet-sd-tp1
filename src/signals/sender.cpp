@@ -1,5 +1,6 @@
 #include <csignal>     // kill, SIGTERM
 #include <cerrno>      // errno, ESRCH, EPERM
+#include <cstring>     // strerror
 #include <iostream>    // std::cerr, std::cout
 #include <unistd.h>    // pid_t
 #include <charconv>    // std::from_chars
@@ -72,6 +73,26 @@ int main(int argc, char *argv[])
     }
 
     int sinal_destino = static_cast<int>(sinal_convertido);
+
+    // sinal 0 não é entregue: só dispara as checagens de existência e
+    // permissão do kernel
+    if (kill(pid_destino, 0) == -1)
+    {
+        if (errno == ESRCH)
+        {
+            std::cerr << "erro: processo " << pid_destino << " não existe\n";
+        }
+        else if (errno == EPERM)
+        {
+            std::cerr << "erro: sem permissão para sinalizar o processo "
+                      << pid_destino << "\n";
+        }
+        else
+        {
+            std::cerr << "erro: kill falhou: " << strerror(errno) << "\n";
+        }
+        return 1;
+    }
 
     return 0;
 }
