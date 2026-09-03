@@ -1,7 +1,7 @@
 #include <csignal>     // kill
 #include <cerrno>      // errno, ESRCH, EPERM
 #include <cstring>     // strerror
-#include <iostream>    // std::cerr
+#include <iostream>    // std::cerr, std::cout
 #include <unistd.h>    // pid_t
 #include <charconv>    // std::from_chars
 #include <optional>    // std::optional
@@ -21,9 +21,9 @@ static std::optional<long> converter_inteiro(std::string_view texto)
     return valor;
 }
 
-static bool processo_acessivel(pid_t pid)
+static bool executar_kill(pid_t pid, int sinal)
 {
-    if (kill(pid, 0) == 0)
+    if (kill(pid, sinal) == 0)
     {
         return true;
     }
@@ -81,10 +81,18 @@ int main(int argc, char *argv[])
     pid_t pid_destino = static_cast<pid_t>(*pid_convertido);
     int sinal_destino = static_cast<int>(*sinal_convertido);
 
-    if (!processo_acessivel(pid_destino))
+    if (!executar_kill(pid_destino, 0))
     {
         return 1;
     }
+
+    if (!executar_kill(pid_destino, sinal_destino))
+    {
+        return 1;
+    }
+
+    std::cout << "sinal " << sinal_destino << " enviado para o processo "
+              << pid_destino << "\n";
 
     return 0;
 }
