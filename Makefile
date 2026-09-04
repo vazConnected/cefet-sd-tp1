@@ -2,9 +2,12 @@ CXX := g++
 CXXFLAGS := -std=c++17 -Wall -Wextra -O2
 BIN := bin
 
-all: $(BIN)/sender
+all: $(BIN)/sender $(BIN)/receiver
 
 $(BIN)/sender: src/sinais/sender.cpp | $(BIN)
+	$(CXX) $(CXXFLAGS) -o $@ $<
+
+$(BIN)/receiver: src/sinais/receiver.cpp | $(BIN)
 	$(CXX) $(CXXFLAGS) -o $@ $<
 
 $(BIN):
