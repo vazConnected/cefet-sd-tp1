@@ -4,7 +4,7 @@ BIN := bin
 
 all: $(BIN)/sender
 
-$(BIN)/sender: src/signals/sender.cpp | $(BIN)
+$(BIN)/sender: src/sinais/sender.cpp | $(BIN)
 	$(CXX) $(CXXFLAGS) -o $@ $<
 
 $(BIN):
