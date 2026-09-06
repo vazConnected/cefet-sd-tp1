@@ -32,46 +32,48 @@ para evitar que o usuário compilasse cada parte individualmente.
 
 ## Parte 2: Sinais
 
-### sender
+Dois programas independentes. O `sender` envia um sinal a qualquer processo, e o
+`receiver` captura sinais e reage a cada um deles com uma mensagem distinta.
 
-Envia um sinal a um processo indicado por parâmetro.
+### Execução
+
+```bash
+make                      # compila os binários
+./bin/receiver block &    # inicia o receiver em segundo plano
+RPID=$!                   # guarda o PID do processo iniciado com &
+./bin/sender $RPID 10     # SIGUSR1 recebido
+./bin/sender $RPID 12     # SIGUSR2 recebido
+kill -USR1 $RPID          # SIGUSR1 recebido, agora pelo comando do sistema
+ps -o %cpu= -p $RPID      # uso de processador durante a espera
+./bin/sender $RPID 15     # SIGTERM recebido: encerrando o receiver
+```
+
+O `&` devolve o prompt ao usuário, pois o receiver permanece em execução até
+receber SIGTERM. A variável `$!` contém o identificador do último processo
+iniciado em segundo plano, e o receiver também imprime o próprio identificador
+ao iniciar. O envio por `kill` verifica que a captura independe do programa
+emissor.
+
+A ordem entre a confirmação do `sender` e a mensagem do `receiver` pode variar,
+pois são processos distintos escrevendo no mesmo terminal. Ao final, o shell
+informa `Done`, e não `Terminated`, o que confirma que o encerramento partiu da
+handler do programa e não da ação padrão do sinal.
+
+Repetindo o roteiro com `busy` no lugar de `block`, a sequência de mensagens é a
+mesma e apenas a medição do `ps` se altera. Nos testes realizados, a ocupação
+foi de 0,0% no modo `block` e de 98,8% no modo `busy`.
+
+### sender
 
 ```bash
 ./bin/sender PID SINAL
 ```
 
-O programa valida os dois argumentos, verifica se o processo alvo existe e envia
-o sinal. A verificação utiliza o sinal nulo (`kill(pid, 0)`), que não é entregue
-ao processo: o kernel executa apenas as checagens de existência e de permissão.
-São aceitos os sinais padrão do POSIX, na faixa de 1 a 31. O programa retorna 0
-em caso de sucesso e 1 em qualquer erro.
-
-Averiguação. Cada comando exercita um caminho distinto do programa:
-
-```bash
-./bin/sender              # uso: ./bin/sender PID SINAL   (argumentos)
-./bin/sender abc 15       # erro: pid inválido                (não numérico)
-./bin/sender 12ab 15      # erro: pid inválido                (caracteres residuais)
-./bin/sender -5 15        # erro: pid deve ser positivo       (valor inválido)
-./bin/sender 1234 15x     # erro: sinal inválido              (caracteres residuais)
-./bin/sender 1234 99      # erro: sinal fora da faixa 1..31   (faixa)
-./bin/sender 999999 15    # erro: processo não existe         (ESRCH)
-./bin/sender 1 15         # erro: sem permissão               (EPERM)
-```
-
-Todos os casos acima retornam código 1. O caso `12ab` é o menos evidente: a
-conversão de texto para número é bem-sucedida, pois lê `12` e interrompe no
-caractere `a`. O erro só é detectável pela posição final da leitura. Sem essa
-verificação, o programa enviaria o sinal ao processo 12.
-
-Envio efetivo, contra um processo criado para o teste:
-
-```bash
-sleep 100 &
-PID=$!
-./bin/sender $PID 15   # sinal 15 enviado para o processo indicado
-ps -p $PID             # não deve listar nada, pois o processo terminou
-```
+Valida os dois argumentos, verifica se o processo alvo existe e envia o sinal. A
+verificação utiliza o sinal nulo (`kill(pid, 0)`), que não é entregue ao
+processo: o kernel executa apenas as checagens de existência e de permissão. São
+aceitos os sinais padrão do POSIX, na faixa de 1 a 31. O programa retorna 0 em
+caso de sucesso e 1 em qualquer erro.
 
 Limitação conhecida: entre a verificação e o envio há uma condição de corrida
 inerente ao mecanismo, pois o processo alvo pode terminar nesse intervalo e o
@@ -81,9 +83,6 @@ prático do problema.
 
 ### receiver
 
-Captura sinais e reage a cada um deles com uma mensagem distinta. A forma de
-espera é escolhida por parâmetro.
-
 ```bash
 ./bin/receiver busy|block
 ```
@@ -91,14 +90,13 @@ espera é escolhida por parâmetro.
 São capturados três sinais: SIGUSR1 (10) e SIGUSR2 (12), que apenas relatam o
 recebimento, e SIGTERM (15), cuja handler encerra o processo. Os handlers são
 instalados com `sigaction`, e não com `signal`, cuja semântica de reinstalação
-varia entre sistemas. Ao iniciar, o programa imprime o próprio PID, necessário
-para os testes.
+varia entre sistemas.
 
 Os handlers de SIGUSR1 e SIGUSR2 apenas marcam uma variável do tipo
-`volatile sig_atomic_t`. A impressão ocorre no laço principal, pois `std::cout`
-não é async-signal-safe. O handler de SIGTERM precisa encerrar o processo por
-exigência do enunciado e, por isso, utiliza `write` e `_exit`, que são seguras
-nesse contexto.
+`volatile sig_atomic_t`, e a impressão ocorre no laço principal, pois
+`std::cout` não é async-signal-safe. O handler de SIGTERM precisa encerrar o
+processo por exigência do enunciado e, por isso, utiliza `write` e `_exit`, que
+são seguras nesse contexto.
 
 Modos de espera:
 
@@ -111,28 +109,27 @@ Modos de espera:
   Com `pause`, um sinal que chegasse entre o teste da variável de estado e a
   chamada seria perdido, e o processo permaneceria suspenso indefinidamente.
 
-Averiguação dos argumentos:
+### Tratamento de erros
+
+Cada comando exercita um caminho distinto de validação. Todos retornam 1.
 
 ```bash
-./bin/receiver          # uso: ./bin/receiver busy|block
-./bin/receiver turbo    # erro: modo inválido
+./bin/sender              # uso: ./bin/sender PID SINAL
+./bin/sender abc 15       # erro: pid inválido (não numérico)
+./bin/sender 12ab 15      # erro: pid inválido (caracteres residuais)
+./bin/sender -5 15        # erro: pid deve ser positivo
+./bin/sender 1234 15x     # erro: sinal inválido (caracteres residuais)
+./bin/sender 1234 99      # erro: sinal fora da faixa 1..31
+./bin/sender 999999 15    # erro: processo não existe (ESRCH)
+./bin/sender 1 15         # erro: sem permissão (EPERM)
+./bin/receiver            # uso: ./bin/receiver busy|block
+./bin/receiver turbo      # erro: modo inválido
 ```
 
-Averiguação da captura de sinais e do custo de processamento:
-
-```bash
-./bin/receiver block &
-RPID=$!
-./bin/sender $RPID 10    # SIGUSR1 recebido
-./bin/sender $RPID 12    # SIGUSR2 recebido
-kill -USR1 $RPID         # SIGUSR1 recebido, agora pelo shell
-ps -o %cpu= -p $RPID     # ocupação de processador durante a espera
-./bin/sender $RPID 15    # SIGTERM recebido: encerrando o receiver
-```
-
-O mesmo roteiro se aplica ao modo `busy`. A sequência de mensagens é idêntica
-nos dois casos, e a diferença observável está na medição do `ps`. Nos testes
-realizados, a ocupação foi de 0,0% no modo `block` e de 98,8% no modo `busy`.
+O caso `12ab` é o menos evidente: a conversão de texto para número é
+bem-sucedida, pois lê `12` e interrompe no caractere `a`. O erro só é detectável
+pela posição final da leitura. Sem essa verificação, o programa enviaria o sinal
+ao processo 12.
 
 ## Parte 3: Pipes
 
