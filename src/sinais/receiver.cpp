@@ -96,7 +96,7 @@ int main(int argc, char *argv[])
 {
     if (argc != 2)
     {
-        std::cerr << "uso: " << argv[0] << " <busy|block>\n";
+        std::cerr << "uso: " << argv[0] << " busy|block\n";
         return 1;
     }
 

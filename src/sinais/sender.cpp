@@ -48,7 +48,7 @@ int main(int argc, char *argv[])
 {
     if (argc != 3)
     {
-        std::cerr << "uso: " << argv[0] << " <pid> <sinal>\n";
+        std::cerr << "uso: " << argv[0] << " PID SINAL\n";
         return 1;
     }
 
