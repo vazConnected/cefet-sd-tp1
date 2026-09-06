@@ -37,7 +37,7 @@ para evitar que o usuário compilasse cada parte individualmente.
 Envia um sinal a um processo indicado por parâmetro.
 
 ```bash
-./bin/sender <pid> <sinal>
+./bin/sender PID SINAL
 ```
 
 O programa valida os dois argumentos, verifica se o processo alvo existe e envia
@@ -49,7 +49,7 @@ em caso de sucesso e 1 em qualquer erro.
 Averiguação. Cada comando exercita um caminho distinto do programa:
 
 ```bash
-./bin/sender              # uso: ./bin/sender <pid> <sinal>   (argumentos)
+./bin/sender              # uso: ./bin/sender PID SINAL   (argumentos)
 ./bin/sender abc 15       # erro: pid inválido                (não numérico)
 ./bin/sender 12ab 15      # erro: pid inválido                (caracteres residuais)
 ./bin/sender -5 15        # erro: pid deve ser positivo       (valor inválido)
@@ -69,7 +69,7 @@ Envio efetivo, contra um processo criado para o teste:
 ```bash
 sleep 100 &
 PID=$!
-./bin/sender $PID 15   # sinal 15 enviado para o processo <PID>
+./bin/sender $PID 15   # sinal 15 enviado para o processo indicado
 ps -p $PID             # não deve listar nada, pois o processo terminou
 ```
 
@@ -85,7 +85,7 @@ Captura sinais e reage a cada um deles com uma mensagem distinta. A forma de
 espera é escolhida por parâmetro.
 
 ```bash
-./bin/receiver <busy|block>
+./bin/receiver busy|block
 ```
 
 São capturados três sinais: SIGUSR1 (10) e SIGUSR2 (12), que apenas relatam o
@@ -114,7 +114,7 @@ Modos de espera:
 Averiguação dos argumentos:
 
 ```bash
-./bin/receiver          # uso: ./bin/receiver <busy|block>
+./bin/receiver          # uso: ./bin/receiver busy|block
 ./bin/receiver turbo    # erro: modo inválido
 ```
 
@@ -136,7 +136,64 @@ realizados, a ocupação foi de 0,0% no modo `block` e de 98,8% no modo `busy`.
 
 ## Parte 3: Pipes
 
-A documentar.
+Programa único que implementa produtor e consumidor em dois processos ligados
+por um pipe anônimo.
+
+```bash
+./bin/producer_consumer_pipe QUANTIDADE
+```
+
+O parâmetro indica quantos números serão gerados. O pipe é criado antes do
+`fork`, de modo que os dois processos herdem os mesmos descritores. O processo
+pai atua como produtor e o filho como consumidor. Logo após a bifurcação, cada
+processo fecha a extremidade que não utiliza. Esse fechamento é necessário para
+o funcionamento correto: enquanto qualquer processo mantiver a extremidade de
+escrita aberta, o consumidor não recebe indicação de fim de arquivo.
+
+O produtor gera a sequência definida no enunciado, com primeiro termo igual a 1
+e incremento aleatório entre 1 e 100. Ao final, envia o número zero e encerra.
+O consumidor lê cada número, verifica se é primo, imprime o resultado e termina
+ao receber o zero. O processo pai aguarda o filho com `waitpid`, o que evita
+processo zumbi, e propaga o resultado do filho em seu próprio código de saída.
+
+Cada número trafega como uma cadeia de exatamente 20 bytes preenchida com zeros
+à esquerda. A opção por zeros, e não por espaços, permite que a leitura utilize
+a mesma rotina de conversão empregada nos demais programas, pois `std::from_chars`
+não ignora espaços iniciais.
+
+As operações de leitura e escrita são repetidas até completar os 20 bytes, pois
+`read` e `write` podem transferir menos bytes do que o solicitado, sobretudo
+quando o pipe está cheio. Tratar uma transferência parcial como bem-sucedida
+desalinharia todas as mensagens seguintes. As duas rotinas também tratam o erro
+`EINTR`, retornado quando um sinal interrompe a chamada.
+
+Há uma chamada explícita a `std::cout.flush()` antes do `fork`, pois o buffer de
+saída é duplicado junto com o processo. Sem esse descarregamento, qualquer
+conteúdo pendente seria impresso duas vezes, uma por processo.
+
+Averiguação dos argumentos:
+
+```bash
+./bin/producer_consumer_pipe        # uso: ./bin/producer_consumer_pipe QUANTIDADE
+./bin/producer_consumer_pipe abc    # erro: quantidade inválida
+./bin/producer_consumer_pipe 0      # erro: quantidade deve ser positiva
+```
+
+Averiguação da execução:
+
+```bash
+./bin/producer_consumer_pipe 10             # saída legível diretamente
+./bin/producer_consumer_pipe 1000 | tail -1 # linha de resumo com os totais
+ps -eo stat,comm | grep producer_consumer   # nenhum processo remanescente
+```
+
+Nos testes realizados, a execução com mil números produziu mil linhas de
+resultado mais a linha de resumo. Verificou-se que a sequência inicia em 1, é
+estritamente crescente e apresenta incrementos entre 1 e 100. A classificação
+de primalidade foi conferida contra uma implementação independente, sem
+divergências. A execução com cem mil números exercita o bloqueio por pipe
+cheio, já que a capacidade padrão no Linux é de 64 KB, equivalente a 3.276
+mensagens de 20 bytes, e concluiu corretamente.
 
 ## Parte 4: Produtor-Consumidor com semáforos
 
