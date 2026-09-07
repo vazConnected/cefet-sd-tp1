@@ -80,9 +80,19 @@ execuções, pois são processos distintos escrevendo no mesmo terminal. A últi
 linha, `Done` em vez de `Terminated`, confirma que o encerramento partiu da
 handler do próprio programa, e não da ação padrão do sinal.
 
-Repetindo o roteiro com `busy` no lugar de `block`, a sequência de mensagens é a
-mesma e apenas a medição do `ps` se altera. Nas execuções registradas acima, a
-ocupação foi de 0,0% no modo `block` e de 100% no modo `busy`.
+O mesmo roteiro se aplica ao modo `busy`:
+
+```bash
+./bin/receiver busy &
+RPID=$!
+./bin/sender $RPID 10     # envia SIGUSR1
+ps -o %cpu= -p $RPID      # uso de processador durante a espera
+./bin/sender $RPID 15     # envia SIGTERM, que encerra o receiver
+```
+
+A sequência de mensagens é a mesma e apenas a medição do `ps` se altera. Nas
+execuções registradas, a ocupação foi de 0,0% no modo `block` e de 100% no modo
+`busy`.
 
 ### sender
 
@@ -256,9 +266,11 @@ consumidos.
 
 ```bash
 make
-./bin/producer_consumer_semaphore 5 1 1 6      # execução legível
+mkdir -p results                                # o diretório não é versionado
+./bin/producer_consumer_semaphore 5 1 1 6       # execução legível
 ./bin/producer_consumer_semaphore 1 8 1 20000 --silencioso
 ./bin/producer_consumer_semaphore 10 2 2 5000 --silencioso --ocupacao results/ocupacao.txt
+head -4 results/ocupacao.txt                    # ocupação após cada operação
 ```
 
 Parâmetros posicionais: N, o número de posições da memória compartilhada; NP, o
