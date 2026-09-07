@@ -11,7 +11,6 @@ multithreaded com semáforos. Disciplina de Sistemas Distribuídos, CEFET-MG.
 - `src/sinais/`: Parte 2, sender e receiver
 - `src/pipes/`: Parte 3, produtor-consumidor com pipe
 - `src/produtor-consumidor/`: Parte 4, semáforos e threads
-- `scripts/`: automação dos estudos de caso da Parte 4, ainda vazio
 - `bin/`: binários gerados pelo build, não versionado
 - `results/`: saídas dos experimentos da Parte 4, não versionado
 
@@ -23,8 +22,9 @@ make bin/sender  # compila apenas um binário
 make clean       # remove bin/
 ```
 
-O build produz três binários: `bin/sender` e `bin/receiver`, da Parte 2, e
-`bin/producer_consumer_pipe`, da Parte 3. Flags: `-std=c++17 -Wall -Wextra -O2`.
+O build produz quatro binários: `bin/sender` e `bin/receiver`, da Parte 2,
+`bin/producer_consumer_pipe`, da Parte 3, e `bin/producer_consumer_semaphore`,
+da Parte 4. Flags: `-std=c++17 -Wall -Wextra -O2`.
 A compilação deve terminar sem nenhum aviso.
 
 O projeto usa um único Makefile na raiz. Cada programa é um único arquivo `.cpp`
@@ -245,4 +245,101 @@ consultando `/proc/PID/wchan` do produtor, que passou a indicar
 
 ## Parte 4: Produtor-Consumidor com semáforos
 
-A implementar.
+Programa multithreaded com memória compartilhada. A memória é um vetor circular
+de N inteiros, escrito por NP threads produtoras e lido por NC threads
+consumidoras. Cada produtora sorteia um inteiro entre 1 e 10 milhões e o deposita
+em uma posição livre; cada consumidora retira um número, libera a posição,
+verifica se é primo e imprime o resultado. A execução termina após M números
+consumidos.
+
+### Execução
+
+```bash
+make
+./bin/producer_consumer_semaphore 5 1 1 6      # execução legível
+./bin/producer_consumer_semaphore 1 8 1 20000 --silencioso
+./bin/producer_consumer_semaphore 10 2 2 5000 --silencioso --ocupacao results/ocupacao.txt
+```
+
+Parâmetros posicionais: N, o número de posições da memória compartilhada; NP, o
+número de threads produtoras; NC, o número de threads consumidoras; e M, o total
+de números a consumir, opcional e igual a 100000 por padrão. A opção
+`--silencioso` suprime a impressão por número, e `--ocupacao` grava a ocupação do
+buffer em arquivo.
+
+Saída de uma execução com seis números:
+
+```
+13189 não é primo
+9668401 é primo
+4466405 não é primo
+2577141 não é primo
+8164441 é primo
+1560430 não é primo
+resumo: n=5 np=1 nc=1 numeros=6 primos=2 tempo_ms=0.125279
+```
+
+A linha final resume os parâmetros e o resultado, em formato adequado ao
+processamento automático dos estudos de caso.
+
+### Funcionamento
+
+A coordenação usa três semáforos POSIX. O semáforo `vagas` é inicializado com N e
+conta as posições livres; o semáforo `itens` é inicializado com zero e conta as
+posições ocupadas; o semáforo `exclusao` é inicializado com um e serializa o
+acesso ao vetor.
+
+A ordem das operações é obrigatória. Cada thread primeiro decrementa o semáforo
+contador correspondente e só então adquire a exclusão mútua. A ordem inversa
+produz deadlock, pois uma thread entraria na região crítica e ali adormeceria,
+impedindo qualquer outra de progredir.
+
+O término é determinado por dois contadores atômicos de reserva, e não por
+valores sentinela. Cada produtora reserva um índice antes de produzir e cada
+consumidora reserva um antes de consumir; a thread que obtém um índice maior ou
+igual a M encerra sem esperar em nenhum semáforo. São produzidos exatamente M
+números e consumidos exatamente M, o que elimina por construção a possibilidade
+de uma thread permanecer bloqueada à espera de um evento que não ocorrerá.
+
+Cada produtora possui seu próprio gerador `std::mt19937`, com semente distinta.
+Um gerador compartilhado teria estado interno mutável e constituiria um ponto de
+contenção adicional, o que distorceria a medição pretendida pelo estudo de caso.
+
+O teste de primalidade e a impressão ocorrem fora da região crítica, de modo que
+o trabalho computacional das consumidoras aconteça em paralelo. Cada linha é
+composta em uma única cadeia de caracteres e emitida por uma única operação de
+inserção, o que evita o entrelaçamento de linhas entre threads.
+
+A impressão por número é o comportamento padrão, conforme o enunciado, mas é
+incompatível com a medição de tempo pretendida no estudo de caso: a formatação de
+cem mil linhas domina a execução e mascara o efeito de N e do número de threads.
+Por essa razão existe a opção `--silencioso`, utilizada nos experimentos.
+
+O registro de ocupação é opcional pelo mesmo motivo, pois acrescenta uma inserção
+em vetor dentro da região crítica. Quando ativado, o vetor é pré-alocado com 2M
+posições, evitando realocações durante a execução, e gravado em arquivo ao final,
+com um valor por linha.
+
+### Estudo de caso
+
+O enunciado define M igual a 100000, os valores de N iguais a 1, 10, 100 e 1000,
+e sete combinações de threads: (1,1), (1,2), (1,4), (1,8), (2,1), (4,1) e (8,1).
+Cada combinação deve ser executada dez vezes, totalizando 280 execuções, das
+quais se extrai o tempo médio. Os resultados alimentam dois gráficos: o tempo
+médio em função do número de threads, com uma curva por valor de N, e a ocupação
+do buffer ao longo do tempo para cada cenário.
+
+A automação e os gráficos ainda não foram implementados.
+
+Medições preliminares, com uma produtora e uma consumidora e M igual a 100000:
+
+```
+n=1     tempo_ms=603.901
+n=10    tempo_ms=56.9447
+n=100   tempo_ms=54.2474
+n=1000  tempo_ms=53.41
+```
+
+A diferença entre N igual a 1 e N igual a 10 indica o efeito esperado: com uma
+única posição, produtora e consumidora alternam-se a cada item e não executam
+simultaneamente.
