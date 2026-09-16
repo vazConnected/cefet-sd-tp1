@@ -1,10 +1,20 @@
 # Sistemas Distribuídos - Trabalho Prático 1
 
-Implementação em C++ dos mecanismos de comunicação entre processos propostos no
-enunciado (docs/scope.md): sinais, pipes anônimos e produtor-consumidor
-multithreaded com semáforos. Disciplina de Sistemas Distribuídos, CEFET-MG.
+Disciplina de Sistemas Distribuídos, CEFET-MG.
+
+## Integrantes:
+
+Alline Santos Ferreira
+Pedro Henrique Estevam Vaz de Melo
+Rávilla Moreira
+
+## Objetivo:
+
+Este relatório tem como objetivo, apresentar a implementação em C++ dos mecanismos de comunicação IPC (Interprocess Communication) baseados em troca de mensagens, threads e mecanismos de sincronização. Foi implementado os seguintes tipos: sinais, pipes anônimos e produtor-consumidor multithreaded com semáforos. 
 
 ## Estrutura
+
+A construção dos programas estão seguindo a seguinte estrutura:
 
 - `Makefile`: build único para todos os programas
 - `docs/scope.md`: enunciado
@@ -226,7 +236,6 @@ resultado e para ao ler o zero. Por fim, o pai fecha a extremidade de escrita e
 chama `waitpid`, o que evita processo zumbi e permite propagar o resultado do
 filho em seu próprio código de saída.
 
-
 Cada número trafega como uma cadeia de exatamente 20 bytes preenchida com zeros
 à esquerda. O tamanho fixo é necessário porque o pipe transporta uma sequência
 de bytes sem qualquer noção de onde uma mensagem termina e a próxima começa. Se
@@ -355,3 +364,9 @@ n=1000  tempo_ms=53.41
 A diferença entre N igual a 1 e N igual a 10 indica o efeito esperado: com uma
 única posição, produtora e consumidora alternam-se a cada item e não executam
 simultaneamente.
+
+## Conclusão
+
+Compreender o funcionamento dos mecanismos de comunicação IPC (Interprocess Communication) baseados em troca de mensagens, threads e mecanismos de sincronização é de suma importância para estudantes e futuros profissionais da área de computação. A compreensão dos diferentes mecanismos utilizados em sistemas distribuídos permite ao aluno adquirir um conhecimento mais aprofundado sobre a comunicação e a coordenação entre processos, bem como sobre os desafios relacionados à execução concorrente de tarefas.
+
+A realização deste trabalho possibilitou aplicar, de forma prática, conceitos relacionados à comunicação e à sincronização entre processos, por meio da implementação de diferentes mecanismos de IPC. Foram desenvolvidas aplicações utilizando sinais, pipes e produtor-consumidor com semáforos. A utilização desses mecanismos permitiu observar as diferentes formas pelas quais processos podem trocar informações, sinalizar eventos e controlar o acesso concorrente a recursos compartilhados.
