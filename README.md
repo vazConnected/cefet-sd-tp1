@@ -5,7 +5,9 @@ Disciplina de Sistemas Distribuídos, CEFET-MG.
 ## Integrantes:
 
 Alline Santos Ferreira
+
 Pedro Henrique Estevam Vaz de Melo
+
 Rávilla Moreira
 
 ## Objetivo:
