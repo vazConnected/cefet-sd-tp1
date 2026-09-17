@@ -234,8 +234,15 @@ receiver imprimiu 192 mensagens.
 consumidor encerrado: 5 números processados, 1 primos
 ```
 
+Com 1000 números, o segundo comando mostra apenas a linha final:
+
+```
+consumidor encerrado: 1000 números processados, 92 primos
+```
+
 O primeiro termo é sempre 1 e a sequência é crescente. O consumidor imprime o
-resumo ao receber o zero.
+resumo ao receber o zero. O roteiro de testes executa o caso com 10000 números
+e confere cada linha.
 
 ### Funcionamento
 
@@ -269,7 +276,17 @@ bool sucesso = executar_produtor(descritores[1], *quantidade);
 close(descritores[1]);
 
 int situacao = 0;
-waitpid(filho, &situacao, 0);
+
+if (waitpid(filho, &situacao, 0) == -1)
+{
+    std::cerr << "erro: waitpid falhou: " << strerror(errno) << "\n";
+    return 1;
+}
+
+if (!sucesso || !WIFEXITED(situacao) || WEXITSTATUS(situacao) != 0)
+{
+    return 1;
+}
 ```
 
 O `flush` antes do `fork` evita que conteúdo pendente no buffer de saída seja
@@ -490,17 +507,21 @@ Observações:
 
 - Com N = 1 o tempo é cerca de dez vezes maior do que com os demais valores.
   Cada operação exige uma troca de contexto entre produtora e consumidora, e a
-  ocupação alterna entre 0 e 1. Adicionar threads reduz pouco o tempo, pois
-  com uma única posição no máximo uma thread progride por vez.
-- A partir de N = 10 as curvas quase coincidem. O buffer já absorve as
-  diferenças de ritmo, e aumentar N além disso traz ganho pequeno.
+  ocupação alterna entre 0 e 1. A segunda thread reduz o tempo em cerca de 30%,
+  e a partir daí o número de threads não faz diferença, pois com uma única
+  posição no máximo uma thread progride por vez.
+- N = 10 já elimina a maior parte do custo, e de N = 100 em diante as curvas
+  coincidem. O buffer absorve as diferenças de ritmo, e aumentar N além disso
+  não traz ganho.
 - A configuração mais rápida é 1/2. A consumidora faz o teste de primalidade e
   é mais lenta que a produtora, o que se vê na ocupação de 93% a 99% nos
-  cenários 1/1 com N grande: o buffer fica cheio e a produtora espera. Duas
-  consumidoras equilibram a carga e a ocupação cai para perto de 50% em N = 10.
-- Com 4 ou 8 consumidoras o buffer fica quase vazio (ocupação abaixo de 7%): a
-  única produtora passa a ser o gargalo e as consumidoras disputam o semáforo
-  `itens` e a exclusão mútua, o que aumenta o tempo.
+  cenários 1/1 com N = 100 e N = 1000: o buffer fica cheio e a produtora
+  espera. Duas consumidoras equilibram a carga, e em N = 10 a ocupação cai para
+  perto de 50%.
+- Com 4 ou 8 consumidoras a única produtora passa a ser o gargalo. Em N = 100 e
+  N = 1000 a ocupação fica abaixo de 7%, e em N = 10 cai para 38% e 14%. As
+  consumidoras disputam o semáforo `itens` e a exclusão mútua, o que aumenta o
+  tempo.
 - Com mais produtoras e uma consumidora o buffer fica cheio (acima de 94%) e o
   tempo cresce com NP, pois a consumidora continua sendo o gargalo e as
   produtoras apenas acrescentam contenção em `vagas` e `exclusao`.
