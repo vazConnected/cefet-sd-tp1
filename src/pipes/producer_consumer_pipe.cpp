@@ -1,13 +1,13 @@
-#include <cerrno>      // errno, EINTR
-#include <charconv>    // std::from_chars
-#include <cstdio>      // std::snprintf
-#include <cstring>     // strerror
-#include <iostream>    // std::cerr, std::cout
-#include <optional>    // std::optional
-#include <random>      // std::mt19937, std::uniform_int_distribution
-#include <string_view> // std::string_view
-#include <sys/wait.h>  // waitpid
-#include <unistd.h>    // pipe, fork, read, write, close
+#include <cerrno>
+#include <charconv>
+#include <cstdio>
+#include <cstring>
+#include <iostream>
+#include <optional>
+#include <random>
+#include <string_view>
+#include <sys/wait.h>
+#include <unistd.h>
 
 static const size_t TAMANHO_MENSAGEM = 20;
 

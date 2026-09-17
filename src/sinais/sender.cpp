@@ -1,11 +1,11 @@
-#include <csignal>     // kill
-#include <cerrno>      // errno, ESRCH, EPERM
-#include <cstring>     // strerror
-#include <iostream>    // std::cerr, std::cout
-#include <unistd.h>    // pid_t
-#include <charconv>    // std::from_chars
-#include <optional>    // std::optional
-#include <string_view> // std::string_view
+#include <csignal>
+#include <cerrno>
+#include <cstring>
+#include <iostream>
+#include <unistd.h>
+#include <charconv>
+#include <optional>
+#include <string_view>
 
 static std::optional<long> converter_inteiro(std::string_view texto)
 {

@@ -1,9 +1,9 @@
-#include <csignal>     // sigaction, sigsuspend, sigprocmask
-#include <cerrno>      // errno
-#include <cstring>     // strerror
-#include <iostream>    // std::cerr, std::cout
-#include <string_view> // std::string_view
-#include <unistd.h>    // getpid, write, _exit
+#include <csignal>
+#include <cerrno>
+#include <cstring>
+#include <iostream>
+#include <string_view>
+#include <unistd.h>
 
 static volatile sig_atomic_t recebido_usr1 = 0;
 static volatile sig_atomic_t recebido_usr2 = 0;

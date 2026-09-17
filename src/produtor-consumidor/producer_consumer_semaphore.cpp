@@ -1,17 +1,17 @@
-#include <atomic>      // std::atomic
-#include <charconv>    // std::from_chars
-#include <chrono>      // std::chrono::steady_clock
-#include <cstring>     // strerror
-#include <cerrno>      // errno
-#include <fstream>     // std::ofstream
-#include <iostream>    // std::cerr, std::cout
-#include <optional>    // std::optional
-#include <random>      // std::mt19937, std::uniform_int_distribution
-#include <semaphore.h> // sem_t, sem_init, sem_wait, sem_post
-#include <string>      // std::string, std::to_string
-#include <string_view> // std::string_view
-#include <thread>      // std::thread
-#include <vector>      // std::vector
+#include <atomic>
+#include <charconv>
+#include <chrono>
+#include <cstring>
+#include <cerrno>
+#include <fstream>
+#include <iostream>
+#include <optional>
+#include <random>
+#include <semaphore.h>
+#include <string>
+#include <string_view>
+#include <thread>
+#include <vector>
 
 static std::vector<long long> memoria_compartilhada;
 static size_t indice_entrada = 0;
