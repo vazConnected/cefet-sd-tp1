@@ -51,7 +51,7 @@ começando com `erro:` quando algo falha, e termina com código 1 nesse caso.
   receber SIGTERM, e o uso de processador durante a espera é impresso.
 - Parte 3: execução com 10000 números. O `check_output.py` refaz o teste de
   primalidade de cada linha, confere que o primeiro termo é 1, que os
-  incrementos estão em [1, 100] e que o resumo bate com a contagem. Depois
+  incrementos estão em [1, 100] e que o resumo corresponde à contagem. Depois
   verifica que não sobrou processo.
 - Parte 4: execução com 20000 números, com a mesma conferência de primalidade
   e da faixa [1, 10^7]. Em seguida cinco configurações extremas (N = 1 e
@@ -213,8 +213,8 @@ static bool esperar_bloqueado()
 ```
 
 Sinais padrão do POSIX não são enfileirados: dois SIGUSR1 pendentes ao mesmo
-tempo resultam em uma única entrega. Em um teste com 200 sinais em rajada, o
-receiver imprimiu 192 mensagens.
+tempo resultam em uma única entrega. Em três testes com 200 sinais enviados em
+rajada por um laço de `kill`, o receiver imprimiu entre 146 e 166 mensagens.
 
 ## Parte 3: Pipes
 
@@ -505,7 +505,7 @@ Ocupação média do buffer, em percentual de N:
 
 Observações:
 
-- Com N = 1 o tempo é cerca de dez vezes maior do que com os demais valores.
+- Com N = 1 o tempo é de seis a dez vezes maior do que com os demais valores.
   Cada operação exige uma troca de contexto entre produtora e consumidora, e a
   ocupação alterna entre 0 e 1. A segunda thread reduz o tempo em cerca de 30%,
   e a partir daí o número de threads não faz diferença, pois com uma única
@@ -513,7 +513,7 @@ Observações:
 - N = 10 já elimina a maior parte do custo, e de N = 100 em diante as curvas
   coincidem. O buffer absorve as diferenças de ritmo, e aumentar N além disso
   não traz ganho.
-- A configuração mais rápida é 1/2. A consumidora faz o teste de primalidade e
+- Para N maior ou igual a 10, a configuração mais rápida é 1/2. A consumidora faz o teste de primalidade e
   é mais lenta que a produtora, o que se vê na ocupação de 93% a 99% nos
   cenários 1/1 com N = 100 e N = 1000: o buffer fica cheio e a produtora
   espera. Duas consumidoras equilibram a carga, e em N = 10 a ocupação cai para
@@ -522,9 +522,11 @@ Observações:
   N = 1000 a ocupação fica abaixo de 7%, e em N = 10 cai para 38% e 14%. As
   consumidoras disputam o semáforo `itens` e a exclusão mútua, o que aumenta o
   tempo.
-- Com mais produtoras e uma consumidora o buffer fica cheio (acima de 94%) e o
-  tempo cresce com NP, pois a consumidora continua sendo o gargalo e as
-  produtoras apenas acrescentam contenção em `vagas` e `exclusao`.
+- Com mais produtoras e uma consumidora o tempo cresce com NP, pois a
+  consumidora continua sendo o gargalo e as produtoras apenas acrescentam
+  contenção em `vagas` e `exclusao`. Em N = 100 e N = 1000 o buffer fica acima
+  de 94% de ocupação; em N = 10 a ocupação sobe de 62% para 83% conforme NP
+  aumenta.
 
 ## Conclusão
 
