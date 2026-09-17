@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
-# Estudo de caso da Parte 4: 4 valores de N x 7 combinacoes de threads x 10 repeticoes.
-# Gera results/tempos.csv e results/ocupacao_N_NP_NC.txt. Uso: experiments/run_case_study.sh
+
 set -eu
 cd "$(dirname "$0")/.."
 

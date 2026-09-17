@@ -1,5 +1,4 @@
-#!/bin/bash
-# Roteiro de testes das tres partes. Rodar a partir da raiz ou de qualquer lugar.
+#!/usr/bin/env bash
 
 cd "$(dirname "$0")/.." || exit 1
 tmp=$(mktemp -d)

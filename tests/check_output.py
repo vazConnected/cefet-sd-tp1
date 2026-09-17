@@ -1,6 +1,4 @@
 #!/usr/bin/env python3
-# Confere a saida do consumidor (pipe ou semaforo) linha a linha.
-# uso: check_output.py pipe|sem ARQUIVO
 
 import sys
 
